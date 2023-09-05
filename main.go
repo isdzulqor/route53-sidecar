@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -33,6 +35,9 @@ func configureFromFlags() {
 	flag.StringVar(&ipAddress, "ipaddress", "public-ipv4", "IP Address for A Record")
 	flag.Parse()
 
+	// Override from environment variables if set
+	configureFromEnv(&dns, &hostedZone, &dnsTTL, &ipAddress)
+
 	if ipAddress == "public-ipv4" {
 		log.Infof("Fetching IP Address from EC2 public-ipv4")
 		metadata := ec2metadata.New(sess)
@@ -48,6 +53,31 @@ func configureFromFlags() {
 			log.Fatalf("Failed to fetch ECS metadata: %v", err)
 		}
 		ipAddress = metadata.Networks[0].IPv4Addresses[0] // use the first IP address
+	} else if ipAddress == "check-from-internet" {
+		log.Infof("Fetching IP Address from internet")
+		ipTemp, err := checkIPFromInternet()
+		if err != nil {
+			log.Fatalf("Fakailed to fetch IP from internet: %v", err)
+		}
+		ipAddress = ipTemp
+	}
+}
+
+func configureFromEnv(dns *string, hostedZone *string, dnsTTL *int, ipAddress *string) {
+	if os.Getenv("DNS") != "" {
+		*dns = os.Getenv("DNS")
+	}
+	if os.Getenv("HOSTEDZONE") != "" {
+		*hostedZone = os.Getenv("HOSTEDZONE")
+	}
+	if val := os.Getenv("DNSTTL"); val != "" {
+		v, err := strconv.Atoi(val)
+		if err != nil {
+			*dnsTTL = v
+		}
+	}
+	if os.Getenv("IPADDRESS") != "" {
+		*ipAddress = os.Getenv("IPADDRESS")
 	}
 }
 
@@ -204,6 +234,33 @@ func getEcsMetadata() (*ecsMetadata, error) {
 		return nil, err
 	}
 	return metadata, nil
+}
+
+func checkIPFromInternet() (string, error) {
+	apiList := []string{
+		"https://ipinfo.io",
+		"https://api.ipify.org?format=json",
+		"https://api.seeip.org/jsonip",
+	}
+	var result struct {
+		IP string `json:"ip"`
+	}
+	client := http.Client{
+		Timeout: 3 * time.Second,
+	}
+
+	for _, api := range apiList {
+		resp, err := client.Get(api)
+		if err != nil {
+			log.Errorf("failed to get ip from %s due: %v", api, err)
+		}
+		if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return "", err
+		}
+		resp.Body.Close()
+		return result.IP, nil
+	}
+	return "", fmt.Errorf("failed to get ip from all apis %v", apiList)
 }
 
 func main() {

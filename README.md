@@ -29,7 +29,7 @@ docker run -v ~/.aws:/root/.aws discobean/route53-sidecar -dns="test.example.com
 ```
 2. With environment variables:
 ```
-docker run -v ~/.aws:/root/.aws isdzulqor/route53-sidecar:amd64-1.0 -e DNS="test.example.com" -e HOSTEDZONE=ABCDEFGHIJKLM4 -e IPADDRESS=127.0.0.1
+docker run -v ~/.aws:/root/.aws isdzulqor/route53-sidecar:amd64-1.0 -e DNS="test.example.com" -e HOSTEDZONE=ABCDEFGHIJKLM4 -e IPADDRESS=check-from-internet
 ```
 
 Build your own docker image:

@@ -21,8 +21,15 @@ make build
 ```
 
 Use the existing docker image locally:
+
+1. With arguments:
 ```
 docker run -v ~/.aws:/root/.aws discobean/route53-sidecar -dns="test.example.com" -hostedzone=ABCDEFGHIJKLM4 -ipaddress=127.0.0.1
+
+```
+2. With environment variables:
+```
+docker run -v ~/.aws:/root/.aws isdzulqor/route53-sidecar:amd64-1.0 -e DNS="test.example.com" -e HOSTEDZONE=ABCDEFGHIJKLM4 -e IPADDRESS=127.0.0.1
 ```
 
 Build your own docker image:

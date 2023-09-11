@@ -9,7 +9,10 @@ Adds a route53 record on Docker startup, removes it on SIGHUP shutdown
 6. Then exits 0
 
 Environment variables:
-* `IPADDRESS` The ip address, or set as `public-ipv4` (default) to get it from instance metadata, `ecs` to get it from ECS container metadata
+* `IPADDRESS` The ip address, or set as 
+    - `public-ipv4` (default) to get it from instance metadata, 
+    - `ecs` to get it from ECS container metadata (seems to be broken),
+    - `check-from-internet` new feature to check from internet.
 * `DNS` The fully qualified DNS name to set
 * `DNSTTL` The TTL time for the DNS A record entry (default 10 seconds)
 * `HOSTEDZONE` The AWS Route53 Hosted Zone ID

@@ -50,3 +50,8 @@ push: docker login ## Push all docker images
 .PHONY: login
 login: ## Login to docker
 	@docker login
+
+push-docker-amd64:
+	make build-amd64 
+	docker build --no-cache -t isdzulqor/route53-sidecar:$(DOCKER_TAG) .
+	docker push isdzulqor/route53-sidecar:$(DOCKER_TAG)

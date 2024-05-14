@@ -23,6 +23,7 @@ var (
 	hostedZone string
 	dnsTTL     int
 	ipAddress  string
+	isHealth   bool
 
 	gracefulStop = make(chan os.Signal, 1)
 	sess         = session.Must(session.NewSession())
@@ -202,6 +203,7 @@ func waitForSync(changeSet *route53.ChangeResourceRecordSetsOutput) {
 
 		if *changeOutput.ChangeInfo.Status == "INSYNC" {
 			log.Info("Route53 Change Completed")
+			isHealth = true
 			break
 		}
 
@@ -263,7 +265,33 @@ func checkIPFromInternet() (string, error) {
 	return "", fmt.Errorf("failed to get ip from all apis %v", apiList)
 }
 
+type server struct {
+	isHealth *bool
+}
+
+func (s *server) ServeHealth(w http.ResponseWriter, r *http.Request) {
+	if *s.isHealth {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+		return
+	}
+	w.WriteHeader(http.StatusServiceUnavailable)
+	w.Write([]byte("Not OK"))
+}
+
 func main() {
+	go func() {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+
+		// Health check server
+		s := &server{isHealth: &isHealth}
+		http.HandleFunc("/health", s.ServeHealth)
+		log.Fatal(http.ListenAndServe(":"+port, nil))
+	}()
+
 	configureFromFlags()
 	dumpConfig()
 
